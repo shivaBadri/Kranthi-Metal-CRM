@@ -1,33 +1,22 @@
-# KRANTHI METAL Premium CRM MVP
+# KRANTHI METAL Colour CRM
+Premium colourful CRM MVP for steel trading business.
 
-Professional Steel Trading CRM MVP with:
-- Login
-- Dashboard analytics
-- Customers
-- Inventory
-- Quotation builder with multiple material rows
-- GST included / excluded / no GST
-- PDF quotation download
-- WhatsApp share text
-- Sales, purchases, follow-ups, reports screens
+## Logins
+- Admin: admin@kranthimetal.com / 123456
+- Manager: manager@kranthimetal.com / 123456
+- Employee: employee@kranthimetal.com / 123456
 
-## Run Backend
-```bash
-cd backend
-copy .env.example .env
-npm install
-npm run seed
-npm run dev
-```
+## Frontend deploy on Vercel
+Root Directory: frontend
+Build Command: npm run build
+Output Directory: dist
 
-## Run Frontend
-```bash
-cd frontend
-npm install
-npm run dev
-```
+## Backend deploy on Render
+Root Directory: backend
+Build Command: npm install
+Start Command: npm start
 
-Login:
-- admin@kranthimetal.com
-- 123456
-"# Kranthi-Metal-CRM" 
+## Backend env
+PORT=5000
+JWT_SECRET=KranthiMetal@2026
+MONGO_URI=your MongoDB Atlas URL

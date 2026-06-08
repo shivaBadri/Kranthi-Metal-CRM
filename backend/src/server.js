@@ -1,19 +1,9 @@
-import express from 'express';import cors from 'cors';import morgan from 'morgan';import dotenv from 'dotenv';import mongoose from 'mongoose';import jwt from 'jsonwebtoken';import bcrypt from 'bcryptjs';
-dotenv.config();
-const app=express();app.use(cors());app.use(express.json());app.use(morgan('dev'));
-const M=process.env.MONGO_URI||'mongodb://127.0.0.1:27017/kranthi_metal_crm';
-mongoose.connect(M).then(()=>console.log('MongoDB connected')).catch(e=>console.log('MongoDB error',e.message));
-const User=mongoose.model('User',new mongoose.Schema({name:String,email:String,password:String,role:String},{timestamps:true}));
-const Customer=mongoose.model('Customer',new mongoose.Schema({name:String,mobile:String,email:String,address:String,gst:String,outstanding:Number,status:String},{timestamps:true}));
-const Supplier=mongoose.model('Supplier',new mongoose.Schema({name:String,mobile:String,email:String,address:String,gst:String,payable:Number},{timestamps:true}));
-const Product=mongoose.model('Product',new mongoose.Schema({name:String,category:String,size:String,grade:String,unit:String,hsn:String,stock:Number,rate:Number,godown:String,minStock:Number},{timestamps:true}));
-const Quotation=mongoose.model('Quotation',new mongoose.Schema({quoteNo:String,customer:Object,items:Array,gstMode:String,gstRate:Number,discount:Number,transport:Number,loading:Number,subtotal:Number,gstAmount:Number,total:Number,status:String,validTill:String,terms:String},{timestamps:true}));
-const FollowUp=mongoose.model('FollowUp',new mongoose.Schema({customer:String,type:String,note:String,date:String,status:String},{timestamps:true}));
-const token=(u)=>jwt.sign({id:u._id,role:u.role},process.env.JWT_SECRET||'secret',{expiresIn:'7d'});
-const auth=async(req,res,next)=>{try{const h=req.headers.authorization||'';const t=h.startsWith('Bearer ')?h.slice(7):null;if(!t)return res.status(401).json({message:'No token'});req.user=jwt.verify(t,process.env.JWT_SECRET||'secret');next()}catch{return res.status(401).json({message:'Invalid token'})}};
-app.get('/api/health',(req,res)=>res.json({ok:true,app:'KRANTHI METAL CRM'}));
-app.post('/api/auth/login',async(req,res)=>{const {email,password}=req.body;const u=await User.findOne({email});if(!u)return res.status(401).json({message:'Invalid login'});const ok=await bcrypt.compare(password,u.password);if(!ok)return res.status(401).json({message:'Invalid login'});res.json({token:token(u),user:{name:u.name,email:u.email,role:u.role}})});
-const crud=(path,Model)=>{app.get(`/api/${path}`,auth,async(req,res)=>res.json(await Model.find().sort({createdAt:-1})));app.post(`/api/${path}`,auth,async(req,res)=>res.status(201).json(await Model.create(req.body)));app.put(`/api/${path}/:id`,auth,async(req,res)=>res.json(await Model.findByIdAndUpdate(req.params.id,req.body,{new:true})));app.delete(`/api/${path}/:id`,auth,async(req,res)=>{await Model.findByIdAndDelete(req.params.id);res.json({ok:true})})};
-crud('customers',Customer);crud('suppliers',Supplier);crud('products',Product);crud('quotations',Quotation);crud('followups',FollowUp);
-app.get('/api/dashboard',auth,async(req,res)=>{const [customers,products,quotes,followups]=await Promise.all([Customer.find(),Product.find(),Quotation.find(),FollowUp.find()]);const stockValue=products.reduce((s,p)=>s+(Number(p.stock)||0)*(Number(p.rate)||0),0);const quoteValue=quotes.reduce((s,q)=>s+(Number(q.total)||0),0);res.json({customers:customers.length,products:products.length,quotations:quotes.length,followups:followups.length,stockValue,quoteValue,lowStock:products.filter(p=>p.stock<=p.minStock).length,recentQuotes:quotes.slice(0,5),topProducts:products.slice(0,5)});});
-app.listen(process.env.PORT||5000,()=>console.log('Server running on '+(process.env.PORT||5000)));
+import express from'express';import cors from'cors';import dotenv from'dotenv';import mongoose from'mongoose';import jwt from'jsonwebtoken';dotenv.config();const app=express();app.use(cors({origin:true,credentials:true}));app.use(express.json());
+const MONGO=process.env.MONGO_URI||'';if(MONGO){mongoose.connect(MONGO).then(()=>console.log('MongoDB Connected')).catch(e=>console.error('MongoDB error',e.message));}
+const users=[{email:'admin@kranthimetal.com',password:'123456',name:'Admin User',role:'Admin'},{email:'manager@kranthimetal.com',password:'123456',name:'Sales Manager',role:'Manager'},{email:'employee@kranthimetal.com',password:'123456',name:'Store Employee',role:'Employee'}];
+const customers=[{id:1,name:'Sri Lakshmi Steels',phone:'9876543210',city:'Hyderabad',status:'Active'},{id:2,name:'Venkateshwara Traders',phone:'9848012345',city:'Vijayawada',status:'Active'}];
+const materials=[{id:1,code:'MS-RB-12',name:'MS Round Bar',size:'12mm',stock:4200,rate:58},{id:2,code:'MS-ANG-50',name:'MS Angle',size:'50x50x6mm',stock:2600,rate:65}];
+app.get('/',(req,res)=>res.json({ok:true,app:'KRANTHI METAL CRM'}));app.get('/api/health',(req,res)=>res.json({ok:true,app:'KRANTHI METAL CRM'}));
+app.post('/api/auth/login',(req,res)=>{const{email,password}=req.body;const u=users.find(x=>x.email===email&&x.password===password);if(!u)return res.status(401).json({message:'Invalid credentials'});const token=jwt.sign({email:u.email,role:u.role},process.env.JWT_SECRET||'secret',{expiresIn:'7d'});res.json({token,user:{email:u.email,name:u.name,role:u.role}})});
+app.get('/api/customers',(req,res)=>res.json(customers));app.get('/api/materials',(req,res)=>res.json(materials));app.post('/api/quotations',(req,res)=>res.json({ok:true,quotation:req.body}));
+const port=process.env.PORT||5000;app.listen(port,()=>console.log('Server running on '+port));
